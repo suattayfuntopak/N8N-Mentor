@@ -27,6 +27,8 @@ export interface Attachment {
   isImage: boolean;
 }
 
+export type AppView = 'chat' | 'links' | 'other-apps' | 'contact';
+
 export interface AppState {
   messages: ChatMessage[];
   isTyping: boolean;

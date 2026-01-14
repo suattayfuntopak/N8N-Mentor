@@ -80,7 +80,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
 
   return (
     <div 
-      className={`p-4 bg-white border-t border-slate-100 transition-colors ${isDragging ? 'bg-slate-50' : ''}`}
+      className={`p-4 bg-white border-t border-slate-100 transition-colors shadow-lg z-20 shrink-0 relative ${isDragging ? 'bg-slate-50' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -89,28 +89,28 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#ff4d6d]/5 pointer-events-none border-2 border-dashed border-[#ff4d6d]/20 m-2 rounded-xl">
           <div className="bg-white p-4 rounded-xl shadow-xl flex items-center gap-3">
             <i className="fas fa-cloud-upload-alt text-[#ff4d6d] text-2xl animate-bounce"></i>
-            <span className="font-bold text-[#ff4d6d]">Dosyaları Buraya Bırak</span>
+            <span className="font-black text-sm text-[#ff4d6d]">Bırakın</span>
           </div>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-3">
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-3 pb-2">
+          <div className="flex flex-wrap gap-3 pb-3 border-b border-slate-50">
             {attachments.map((file) => (
               <div key={file.id} className="relative group">
                 {file.isImage ? (
-                  <img src={file.base64} alt="Preview" className="h-20 w-20 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                  <img src={file.base64} alt="Preview" className="h-14 w-14 object-cover rounded-lg border border-slate-200 shadow-sm" />
                 ) : (
-                  <div className="h-20 w-20 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-lg p-2 text-center">
-                    <i className={`fas ${file.type.includes('json') ? 'fa-file-code text-blue-500' : 'fa-file-alt text-slate-400'} text-xl mb-1`}></i>
-                    <span className="text-[8px] font-medium truncate w-full text-slate-600">{file.name}</span>
+                  <div className="h-14 w-14 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-center">
+                    <i className={`fas ${file.type.includes('json') ? 'fa-file-code text-blue-500' : 'fa-file-alt text-slate-400'} text-lg mb-0.5`}></i>
+                    <span className="text-[8px] font-black truncate w-full text-slate-600">{file.name}</span>
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={() => removeAttachment(file.id)}
-                  className="absolute -top-2 -right-2 bg-slate-800 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-500 transition-colors shadow-sm opacity-0 group-hover:opacity-100"
+                  className="absolute -top-1.5 -right-1.5 bg-slate-900 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-500 transition-all shadow-md opacity-0 group-hover:opacity-100 z-10"
                 >
                   <i className="fas fa-times text-[10px]"></i>
                 </button>
@@ -124,11 +124,12 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-12 h-12 bg-[#ff4d6d] text-white rounded-xl flex items-center justify-center hover:bg-[#e63958] transition-all shadow-lg shadow-pink-500/10 active:scale-95"
+              className="w-10 h-10 bg-[#ff4d6d] text-white rounded-lg flex items-center justify-center hover:bg-[#e63958] transition-all shadow-sm active:scale-90 shrink-0"
             >
-              <i className="fas fa-plus text-xl"></i>
+              <i className="fas fa-plus text-lg"></i>
             </button>
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-slate-700">
+            {/* Tooltip */}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[11px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
               resim, json ya da dosya ekle
             </div>
           </div>
@@ -149,7 +150,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
               onChange={(e) => setText(e.target.value)}
               onPaste={handlePaste}
               placeholder="n8n, node'lar ve/ya iş akışları hakkında sorular sor... (Ekran resmi, json ya da dosya yükle ya da sürükle bırak)"
-              className="w-full h-12 bg-white border border-slate-200 rounded-full px-6 focus:outline-none focus:ring-2 focus:ring-[#ff4d6d]/10 focus:border-[#ff4d6d] transition-all text-slate-700 placeholder:text-slate-400 shadow-inner"
+              className="w-full h-10 bg-white border border-slate-200 rounded-lg px-4 focus:outline-none focus:border-[#ff4d6d] transition-all text-[14px] font-medium text-slate-700 placeholder:text-slate-400"
               disabled={disabled}
             />
           </div>
@@ -157,29 +158,31 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
           <button
             type="submit"
             disabled={(!text.trim() && attachments.length === 0) || disabled}
-            className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg ${
+            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all shadow-sm shrink-0 ${
               (!text.trim() && attachments.length === 0) || disabled
-                ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-                : 'bg-[#ff4d6d] text-white hover:bg-[#e63958] active:scale-95 shadow-pink-500/20'
+                ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
+                : 'bg-[#ff4d6d] text-white hover:bg-[#e63958] active:scale-90'
             }`}
           >
-            <i className="fas fa-paper-plane"></i>
+            <i className="fas fa-paper-plane text-[15px]"></i>
           </button>
         </div>
         
-        <div className="flex items-center justify-center gap-12 pt-3 pb-1">
-          <span className="text-[10px] text-slate-400 font-semibold tracking-widest uppercase">
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase">
               DESIGNED BY SUAT TAYFUN TOPAK
           </span>
-          <div className="flex items-center gap-3 text-xs text-slate-600 font-medium">
-            <span>Beğendiysen belki bana bir kahve ısmarlarsın ;)</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[12px] italic text-slate-500 hidden sm:inline">
+              Beğendiysen belki bana bir kahve ısmarlarsın ;)
+            </span>
             <a 
               href="https://buymeacoffee.com/suattayfuntopak" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="bg-[#FFDD00] text-black px-4 py-1.5 rounded-full font-bold text-[11px] hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm border border-black/5"
+              className="bg-[#FFDD00] text-black px-3 py-1.5 rounded-full font-black text-[10px] hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm"
             >
-              <i className="fas fa-coffee"></i>
+              <img src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg" alt="BMC" className="w-3.5" />
               Buy me a coffee
             </a>
           </div>
