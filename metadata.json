@@ -1,0 +1,5 @@
+{
+  "name": "N8N Mentor AI - Step-by-Step Workflow",
+  "description": "A unified platform for n8n workflow mentorship and screen analysis. Upload screenshots and chat with an AI mentor to build and debug your automations.",
+  "requestFramePermissions": []
+}
