@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Attachment } from '../types';
 
 interface ChatInputProps {
@@ -13,37 +12,64 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const isImage = file.type.startsWith('image/');
-      const newAttachment: Attachment = {
-        id: Math.random().toString(36).substring(7),
-        name: file.name,
-        type: file.type || (file.name.endsWith('.json') ? 'application/json' : 'text/plain'),
-        base64: reader.result as string,
-        isImage
-      };
-      setAttachments(prev => [...prev, newAttachment]);
-    };
-    reader.readAsDataURL(file);
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      Array.from(files).forEach(processFile);
+  const normalizeFile = async (file: File): Promise<Attachment> => {
+    const dataUrl = await fileToDataUrl(file);
+    const mimeType =
+      file.type || (file.name.endsWith('.json') ? 'application/json' : 'text/plain');
+
+    return {
+      id: Math.random().toString(36).substring(7),
+      name: file.name,
+      type: mimeType,
+      mimeType,
+      base64: dataUrl,
+      data: dataUrl.split(',')[1],
+      isImage: mimeType.startsWith('image/'),
+    } as Attachment;
+  };
+
+  const addFiles = async (files: File[]) => {
+    if (!files.length) return;
+
+    try {
+      const newAttachments = await Promise.all(files.map(normalizeFile));
+      setAttachments((prev) => [...prev, ...newAttachments]);
+    } catch (err) {
+      console.error('Dosya yükleme hatası:', err);
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    await addFiles(files);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
     const items = e.clipboardData.items;
+    const files: File[] = [];
+
     for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1 || items[i].type.indexOf('text') !== -1) {
-        const file = items[i].getAsFile();
-        if (file) processFile(file);
+      const item = items[i];
+      if (
+        item.type.indexOf('image') !== -1 ||
+        item.type.indexOf('text') !== -1 ||
+        item.type.indexOf('json') !== -1
+      ) {
+        const file = item.getAsFile();
+        if (file) files.push(file);
       }
     }
+
+    await addFiles(files);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -56,17 +82,16 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const files = e.dataTransfer.files;
-    if (files) {
-      Array.from(files).forEach(processFile);
-    }
+    const files = Array.from(e.dataTransfer.files || []);
+    await addFiles(files);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if ((text.trim() || attachments.length > 0) && !disabled) {
       onSendMessage(text, attachments);
       setText('');
@@ -75,12 +100,13 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
   };
 
   const removeAttachment = (id: string) => {
-    setAttachments(prev => prev.filter(a => a.id !== id));
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
   return (
-    <div 
-      className={`p-4 bg-white border-t border-slate-100 transition-colors shadow-lg z-20 shrink-0 relative ${isDragging ? 'bg-slate-50' : ''}`}
+    <div
+      className={`p-4 bg-white border-t border-slate-100 transition-colors shadow-lg z-20 shrink-0 relative ${isDragging ? 'bg-slate-50' : ''
+        }`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -100,11 +126,22 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
             {attachments.map((file) => (
               <div key={file.id} className="relative group">
                 {file.isImage ? (
-                  <img src={file.base64} alt="Preview" className="h-14 w-14 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                  <img
+                    src={file.base64}
+                    alt="Preview"
+                    className="h-14 w-14 object-cover rounded-lg border border-slate-200 shadow-sm"
+                  />
                 ) : (
                   <div className="h-14 w-14 flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-center">
-                    <i className={`fas ${file.type.includes('json') ? 'fa-file-code text-blue-500' : 'fa-file-alt text-slate-400'} text-lg mb-0.5`}></i>
-                    <span className="text-[8px] font-black truncate w-full text-slate-600">{file.name}</span>
+                    <i
+                      className={`fas ${(file.mimeType || file.type || '').includes('json')
+                        ? 'fa-file-code text-blue-500'
+                        : 'fa-file-alt text-slate-400'
+                        } text-lg mb-0.5`}
+                    ></i>
+                    <span className="text-[8px] font-black truncate w-full text-slate-600">
+                      {file.name}
+                    </span>
                   </div>
                 )}
                 <button
@@ -128,19 +165,25 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
             >
               <i className="fas fa-plus text-lg"></i>
             </button>
-            {/* Tooltip */}
+
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[11px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-30">
               resim, json ya da dosya ekle
             </div>
           </div>
-          
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            className="hidden" 
-            multiple 
-            accept="image/*,.json,application/json,.txt,.doc,.docx,.pdf,.csv,.xls,.xlsx" 
+
+          <input
+            key={Date.now()}
+            type="file"
+            ref={fileInputRef}
+            onChange={(e) => {
+              handleFileChange(e);
+              if (e.target) {
+                e.target.value = '';
+              }
+            }}
+            className="hidden"
+            multiple
+            accept="image/*,.json,application/json,.txt,.doc,.docx,.pdf,.csv,.xls,.xlsx"
           />
 
           <div className="flex-1 relative">
@@ -164,31 +207,34 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
           <button
             type="submit"
             disabled={(!text.trim() && attachments.length === 0) || disabled}
-            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all shadow-sm shrink-0 ${
-              (!text.trim() && attachments.length === 0) || disabled
-                ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
-                : 'bg-[#ff4d6d] text-white hover:bg-[#e63958] active:scale-90'
-            }`}
+            className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all shadow-sm shrink-0 ${(!text.trim() && attachments.length === 0) || disabled
+              ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
+              : 'bg-[#ff4d6d] text-white hover:bg-[#e63958] active:scale-90'
+              }`}
           >
             <i className="fas fa-paper-plane text-[15px]"></i>
           </button>
         </div>
-        
+
         <div className="flex items-center justify-between pt-2">
           <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase">
-              DESIGNED BY SUAT TAYFUN TOPAK
+            DESIGNED BY SUAT TAYFUN TOPAK
           </span>
           <div className="flex items-center gap-3">
             <span className="text-[12px] italic text-slate-500 hidden sm:inline">
               Beğendiysen belki bana bir kahve ısmarlarsın ;)
             </span>
-            <a 
-              href="https://buymeacoffee.com/suattayfuntopak" 
-              target="_blank" 
+            <a
+              href="https://buymeacoffee.com/suattayfuntopak"
+              target="_blank"
               rel="noopener noreferrer"
               className="bg-[#FFDD00] text-black px-3 py-1.5 rounded-full font-black text-[10px] hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 shadow-sm"
             >
-              <img src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg" alt="BMC" className="w-3.5" />
+              <img
+                src="https://cdn.buymeacoffee.com/buttons/bmc-new-btn-logo.svg"
+                alt="BMC"
+                className="w-3.5"
+              />
               Buy me a coffee
             </a>
           </div>
