@@ -29,13 +29,7 @@ export const getGeminiResponse = async (
 
   if (!temizMetin && attachments.length > 0) {
     gonderilecekMesaj =
-      "Dosya veya görsel eklendi. Bu sürümde önce metin tabanlı analiz aktif. Lütfen ekle birlikte ne yapmak istediğini de yaz.";
-  }
-
-  if (temizMetin && attachments.length > 0) {
-    gonderilecekMesaj += `
-
-Not: ${attachments.length} adet ek seçildi. Bu yeni sürümde arayüz hazır, ancak eklerin n8n tarafında tam işlenmesini bir sonraki adımda açacağız. Şimdilik metin üzerinden yönlendirme yap.`;
+      "Dosya veya görsel eklendi. Lütfen ekle birlikte ne yapmak istediğini de yaz.";
   }
 
   try {
@@ -49,6 +43,13 @@ Not: ${attachments.length} adet ek seçildi. Bu yeni sürümde arayüz hazır, a
         kullanici_id: "web_kullanici",
         mesaj: gonderilecekMesaj,
         mod: "mentor",
+        attachments: (attachments || []).map((a: any) => ({
+          name: a.name || "",
+          mimeType: a.type || a.mimeType || "application/octet-stream",
+          data: (a.base64 || a.data || "").includes(",")
+            ? (a.base64 || a.data).split(",")[1]
+            : (a.base64 || a.data || "")
+        }))
       }),
     });
 
